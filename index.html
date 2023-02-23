@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exemple de graphique météo avec OpenWeather et Google Charts</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  </head>
+  <body>
+    <form>
+      <label for="city">Ville :</label>
+      <input type="text" id="city" name="city">
+      <button type="button" onclick="getWeather()">Prévisions</button>
+    </form>
+    <div id="chart" style="width:1500px;height:800px"></div>
+
+    <script>
+      google.charts.load('current', {'packages':['corechart']});
+      let apiKey = "9ac87944df5235784c31d4cda1de197c";
+      let lastRequestResult = null;
+      let WeatherHistory = [];
+
+      function getWeather(){
+        var city = document.getElementById("city").value;
+        console.log(city);
+        var url = "https://api.openweathermap.org/data/2.5/forecast?q=" + city + "&appid="+apiKey+"&units=metric";
+        $.ajax({
+          url:url,
+          success:(result) => {
+            lastRequestResult = result;
+            compileWeatherHistory();
+            drawChart(city);
+          }
+        })
+      }
+      function compileWeatherHistory(){
+        if(lastRequestResult != null){
+          WeatherHistory = [];
+          let WeatherData = [];
+          lastRequestResult.list.forEach((item) => {
+            let date = item.dt_txt.split(' ')[0];
+            if(!WeatherData[date]){
+              WeatherData[date] = [];
+            }
+            WeatherData[date].push(item);
+          });
+          let JourData = Object.values(WeatherData).map((data) =>{
+            console.log(data[0].main);
+            let tempHistory = data.map((item) => item.main.temp);
+            
+            let min = Math.min(...tempHistory);
+            let max = Math.max(...tempHistory);
+            let date = data[0].dt_txt.split(' ')[0];
+            return [date,min,max];
+          });
+          let tilesRow = ['Date','MIN','MAX'];
+          WeatherHistory = [tilesRow].concat(JourData);
+        }
+        
+      }
+      
+      function drawChart(city){
+        
+        let options = {
+          title: city + " Prévisions pour les 5 prochains jours",
+          titleTextStyle:{fontSize:'24',color:'green'},
+          legend:{
+            position:'top'
+          },
+          chartArea:{left:100,top:100,right:50,bottom:200}
+        };
+        let data = google.visualization.arrayToDataTable(WeatherHistory);
+        let chart = new google.visualization.LineChart($('#chart')[0]);
+
+        chart.draw(data,options);
+      }
+    </script>
+  </body>
+</html>
